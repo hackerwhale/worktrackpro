@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import session from "express-session";
 
 // Setup multer for file uploads
 const upload = multer({
@@ -60,13 +61,17 @@ const isAdmin = async (req: Request, res: Response, next: Function) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Enable session
-  app.use((req: any, res, next) => {
-    if (!req.session) {
-      req.session = {};
+  // Set up session middleware with a proper configuration
+  app.use(session({
+    secret: 'your-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // only use secure in production
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-    next();
-  });
+  }));
 
   // Auth routes
   app.post('/api/auth/login', async (req, res) => {

@@ -1,3 +1,5 @@
+// filepath: r:\Client Work\ennovatewebdesign\WorkTrackPro\WorkTrackPro\server\db.ts
+import 'dotenv/config'; // <-- add this line at the very top
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
@@ -7,7 +9,7 @@ neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "postgresql://postgres:PYICpTTKSPNXWxkZybonikFRjIBBIEHE@switchback.proxy.rlwy.net:14194/railway",
   );
 }
 

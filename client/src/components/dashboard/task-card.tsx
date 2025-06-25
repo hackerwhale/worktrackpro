@@ -16,7 +16,7 @@ const TaskCard = ({ task, users }: TaskCardProps) => {
     return users.find(user => user.id === userId);
   };
 
-  const assignedUser = getUserById(task.assignedTo);
+  const assignedUser = getUserById(task.assignedTo ?? undefined);
 
   // Get appropriate badge based on status
   const getStatusBadge = (status: string) => {

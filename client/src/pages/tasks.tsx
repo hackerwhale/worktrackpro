@@ -207,15 +207,15 @@ const Tasks = () => {
                     </div>
                     <div className="flex w-full items-center justify-between p-4 md:w-64">
                       <div className="flex items-center gap-3">
-                        {task.assignedTo && getAssignedUserAvatar(task.assignedTo) && (
+                        {task.assignedTo && getAssignedUserAvatar(task.assignedTo ?? undefined) && (
                           <img 
-                            src={getAssignedUserAvatar(task.assignedTo) || ""} 
-                            alt={getAssignedUserName(task.assignedTo)} 
+                            src={getAssignedUserAvatar(task.assignedTo ?? undefined) || ""} 
+                            alt={getAssignedUserName(task.assignedTo ?? undefined)} 
                             className="h-10 w-10 rounded-full object-cover" 
                           />
                         )}
                         <div>
-                          <p className="text-sm font-medium">{getAssignedUserName(task.assignedTo)}</p>
+                          <p className="text-sm font-medium">{getAssignedUserName(task.assignedTo ?? undefined)}</p>
                           <p className="text-xs text-neutral-500">
                             Created {format(new Date(task.createdAt), "MMM d, yyyy")}
                           </p>

@@ -1,5 +1,5 @@
 import { eq, and, desc, like, or, isNull, ne } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "./db.js";
 import {
   users, User, InsertUser,
   attendance, Attendance, InsertAttendance,
@@ -7,7 +7,7 @@ import {
   notes, Note, InsertNote,
   photos, Photo, InsertPhoto,
   activities, Activity, InsertActivity
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 export interface IStorage {
   // User operations
@@ -50,6 +50,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
+    if (typeof id !== "number") return undefined;
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
@@ -69,6 +70,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    if (typeof id !== "number") return undefined;
     const [updatedUser] = await db
       .update(users)
       .set(userData)
@@ -78,6 +80,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<boolean> {
+    if (typeof id !== "number") return false;
     const [deletedUser] = await db
       .delete(users)
       .where(eq(users.id, id))
@@ -87,14 +90,16 @@ export class DatabaseStorage implements IStorage {
 
   // Attendance operations
   async getAttendance(id: number): Promise<Attendance | undefined> {
-    const [attendance] = await db
+    if (typeof id !== "number") return undefined;
+    const [attendanceRecord] = await db
       .select()
       .from(attendance)
       .where(eq(attendance.id, id));
-    return attendance;
+    return attendanceRecord;
   }
 
   async getAttendanceByUserAndDate(userId: number, date: string): Promise<Attendance | undefined> {
+    if (typeof userId !== "number" || !date) return undefined;
     const [attendanceRecord] = await db
       .select()
       .from(attendance)
@@ -349,33 +354,37 @@ export class MemStorage implements IStorage {
     this.attendance.set(1, {
       id: 1,
       userId: 2,
-      checkInTime: new Date("2023-06-10T08:45:00"),
-      date: today,
-      status: "active"
+      checkInTime: new Date(),
+      checkOutTime: null, // Add this
+      status: "active",
+      date: "2024-01-01"
     });
 
     this.attendance.set(2, {
       id: 2,
       userId: 3,
       checkInTime: new Date("2023-06-10T08:30:00"),
-      date: today,
-      status: "active"
+      checkOutTime: null, // Add this
+      status: "active",
+      date: "2024-01-01"
     });
 
     this.attendance.set(3, {
       id: 3,
       userId: 4,
       checkInTime: new Date("2023-06-10T09:05:00"),
-      date: today,
-      status: "active"
+      checkOutTime: null, // Add this
+      status: "active",
+      date: "2024-01-01"
     });
 
     this.attendance.set(4, {
       id: 4,
       userId: 5,
       checkInTime: new Date("2023-06-10T08:55:00"),
-      date: today,
-      status: "active"
+      checkOutTime: null, // Add this
+      status: "active",
+      date: "2024-01-01"
     });
 
     this.currentAttendanceId = 5;
@@ -499,6 +508,7 @@ export class MemStorage implements IStorage {
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
+    if (typeof id !== "number") return undefined;
     return this.users.get(id);
   }
 
@@ -508,7 +518,14 @@ export class MemStorage implements IStorage {
 
   async createUser(userData: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...userData, id };
+    const user: User = {
+      ...userData,
+      id,
+      email: userData.email ?? null,
+      role: userData.role ?? "user",
+      position: userData.position ?? null,
+      profileImageUrl: userData.profileImageUrl ?? null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -518,24 +535,27 @@ export class MemStorage implements IStorage {
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    if (typeof id !== "number") return undefined;
     const user = this.users.get(id);
     if (!user) return undefined;
-
     const updatedUser = { ...user, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
 
   async deleteUser(id: number): Promise<boolean> {
+    if (typeof id !== "number") return false;
     return this.users.delete(id);
   }
 
   // Attendance operations
   async getAttendance(id: number): Promise<Attendance | undefined> {
+    if (typeof id !== "number") return undefined;
     return this.attendance.get(id);
   }
 
   async getAttendanceByUserAndDate(userId: number, date: string): Promise<Attendance | undefined> {
+    if (typeof userId !== "number" || !date) return undefined;
     return Array.from(this.attendance.values()).find(
       a => a.userId === userId && a.date === date
     );
@@ -543,7 +563,13 @@ export class MemStorage implements IStorage {
 
   async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
     const id = this.currentAttendanceId++;
-    const attendance: Attendance = { ...attendanceData, id };
+    const attendance: Attendance = {
+      ...attendanceData,
+      id,
+      status: attendanceData.status ?? "active",
+      checkInTime: attendanceData.checkInTime ?? new Date(),
+      checkOutTime: attendanceData.checkOutTime ?? null
+    };
     this.attendance.set(id, attendance);
     return attendance;
   }
@@ -569,11 +595,17 @@ export class MemStorage implements IStorage {
   async createTask(taskData: InsertTask): Promise<Task> {
     const id = this.currentTaskId++;
     const now = new Date();
-    const task: Task = { 
-      ...taskData, 
-      id, 
-      createdAt: now, 
-      updatedAt: now 
+    const task: Task = {
+      id,
+      title: taskData.title,
+      description: taskData.description ?? null,
+      assignedTo: taskData.assignedTo ?? null,
+      createdBy: taskData.createdBy,
+      dueDate: taskData.dueDate ?? null,
+      status: taskData.status ?? "active",
+      priority: taskData.priority ?? "normal",
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.tasks.set(id, task);
     return task;
@@ -583,10 +615,10 @@ export class MemStorage implements IStorage {
     const task = this.tasks.get(id);
     if (!task) return undefined;
 
-    const updatedTask = { 
-      ...task, 
-      ...taskData, 
-      updatedAt: new Date() 
+    const updatedTask = {
+      ...task,
+      ...taskData,
+      updatedAt: new Date()
     };
     this.tasks.set(id, updatedTask);
     return updatedTask;
@@ -643,7 +675,8 @@ export class MemStorage implements IStorage {
     const photo: Photo = { 
       ...photoData, 
       id, 
-      createdAt: new Date() 
+      caption: photoData.caption ?? null,
+      createdAt: new Date()
     };
     this.photos.set(id, photo);
     return photo;
@@ -660,8 +693,10 @@ export class MemStorage implements IStorage {
     const id = this.currentActivityId++;
     const activity: Activity = { 
       ...activityData, 
-      id, 
-      createdAt: new Date() 
+      id,
+      entityId: activityData.entityId ?? null,
+      entityType: activityData.entityType ?? null,
+      createdAt: new Date()
     };
     this.activities.set(id, activity);
     return activity;
@@ -669,3 +704,8 @@ export class MemStorage implements IStorage {
 }
 
 export const storage = new MemStorage();
+
+server: {
+  // allowedHosts: true, // or remove this line if not needed
+  // ...
+}

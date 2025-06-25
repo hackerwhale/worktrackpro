@@ -112,7 +112,7 @@ const CreateTaskForm = ({ onSuccess, users }: CreateTaskFormProps) => {
                 <Textarea 
                   placeholder="Enter task description" 
                   className="min-h-[100px]" 
-                  {...field} 
+                  {...field} value={field.value ?? ''} 
                 />
               </FormControl>
               <FormMessage />

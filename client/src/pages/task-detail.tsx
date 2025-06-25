@@ -81,7 +81,7 @@ const TaskDetail = () => {
   const createdByUser = task?.createdBy ? getUserById(task.createdBy) : null;
 
   // Helper to format the due date with time
-  const formatDueDate = (date?: string | Date) => {
+  const formatDueDate = (date?: string | Date | null) => {
     if (!date) return "No due date";
     return format(new Date(date), "MMM d, yyyy, h:mm a");
   };

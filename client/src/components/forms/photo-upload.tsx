@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 const photoFormSchema = z.object({
   caption: z.string().optional(),
-  photo: z.instanceof(File, { message: "Please select a photo to upload" }),
+  photo: z.instanceof(File, { message: "Please select a photo to upload" }).nullable(),
 });
 
 type PhotoFormValues = z.infer<typeof photoFormSchema>;
@@ -39,7 +39,9 @@ const PhotoUpload = ({ taskId, onSuccess }: PhotoUploadProps) => {
   const uploadPhotoMutation = useMutation({
     mutationFn: async (data: PhotoFormValues) => {
       const formData = new FormData();
-      formData.append("photo", data.photo);
+      if (data.photo) {
+        formData.append("photo", data.photo);
+      }
       if (data.caption) formData.append("caption", data.caption);
       
       const response = await fetch(`/api/tasks/${taskId}/photos`, {
@@ -94,7 +96,7 @@ const PhotoUpload = ({ taskId, onSuccess }: PhotoUploadProps) => {
   };
 
   const clearFileSelection = () => {
-    form.setValue("photo", undefined, { shouldValidate: true });
+    form.setValue("photo", null, { shouldValidate: true });
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -148,11 +150,10 @@ const PhotoUpload = ({ taskId, onSuccess }: PhotoUploadProps) => {
                         </p>
                       </>
                     )}
-                    <input 
-                      ref={fileInputRef}
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
                       onChange={handleFileChange}
                       {...field}
                     />

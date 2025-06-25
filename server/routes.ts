@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { insertUserSchema, insertTaskSchema, insertNoteSchema, insertPhotoSchema, insertAttendanceSchema, insertActivitySchema } from "@shared/schema";
+import { storage } from "./storage.js";
+import { insertUserSchema, insertTaskSchema, insertNoteSchema, insertPhotoSchema, insertAttendanceSchema, insertActivitySchema } from "../shared/schema.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -78,6 +78,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = req.body;
       const user = await storage.getUserByUsername(username);
+
+      // Allow demo login
+      if (
+        username === process.env.DEMO_USER &&
+        password === process.env.DEMO_PASSWORD
+      ) {
+        req.session.userId = 0; // or any demo user id
+        return res.json({ message: "Login successful" });
+      }
 
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
@@ -232,11 +241,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Attendance check-in
   app.post('/api/attendance/check-in', isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
+      if (typeof userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       const date = new Date().toISOString().split('T')[0];
-      
+
       // Check if user already checked in today
       const existingAttendance = await storage.getAttendanceByUserAndDate(userId, date);
       
@@ -269,11 +282,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Attendance check-out
   app.post('/api/attendance/check-out', isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
+      if (typeof userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       const date = new Date().toISOString().split('T')[0];
-      
+
       // Find today's attendance record
       const existingAttendance = await storage.getAttendanceByUserAndDate(userId, date);
       
@@ -306,9 +323,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Attendance status
   app.put('/api/attendance/status', isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
+      if (typeof userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       const { status } = req.body;
       const date = new Date().toISOString().split('T')[0];
       
@@ -394,9 +415,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create task
   app.post('/api/tasks', isAuthenticated, async (req, res) => {
     try {
       const userId = req.session.userId;
+      if (typeof userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       
       // Set the current user as the creator
       const taskData = insertTaskSchema.parse({
@@ -422,6 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update task
   app.put('/api/tasks/:id', isAuthenticated, async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
@@ -441,6 +467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedTask = await storage.updateTask(taskId, req.body);
       
       // Create activity for task update
+      if (typeof req.session.userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       await storage.createActivity({
         userId: req.session.userId,
         activityType: "task_updated",
@@ -456,6 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete task
   app.delete('/api/tasks/:id', isAuthenticated, async (req, res) => {
     try {
       const taskId = parseInt(req.params.id);
@@ -474,6 +504,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (result) {
         // Create activity for task deletion
+        if (typeof req.session.userId !== "number") {
+          return res.status(401).json({ message: "Not authenticated" });
+        }
         await storage.createActivity({
           userId: req.session.userId,
           activityType: "task_deleted",
@@ -521,6 +554,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
 
+      if (typeof userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
       const noteData = insertNoteSchema.parse({
         taskId,
         userId,
@@ -567,9 +603,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const taskId = parseInt(req.params.taskId);
       const userId = req.session.userId;
-      
+      if (typeof userId !== "number") {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
       const task = await storage.getTask(taskId);
-      
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
@@ -578,19 +616,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No photo uploaded" });
       }
 
-      // For the sake of this example, we'll use the file path as the URL
-      // In a real application, you'd want to store these in a CDN or cloud storage
       const imageUrl = `/uploads/${req.file.filename}`;
 
       const photoData = insertPhotoSchema.parse({
         taskId,
         userId,
         imageUrl,
-        caption: req.body.caption || ""
+        caption: req.body.caption || "",
+        createdAt: new Date()
       });
 
       const newPhoto = await storage.createPhoto(photoData);
-      
+
       // Create activity for photo upload
       await storage.createActivity({
         userId,

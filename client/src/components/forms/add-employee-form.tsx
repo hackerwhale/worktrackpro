@@ -113,7 +113,7 @@ const AddEmployeeForm = ({ onSuccess }: AddEmployeeFormProps) => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="Email address" {...field} />
+                <Input type="email" placeholder="Email address" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -127,7 +127,7 @@ const AddEmployeeForm = ({ onSuccess }: AddEmployeeFormProps) => {
             <FormItem>
               <FormLabel>Position</FormLabel>
               <FormControl>
-                <Input placeholder="Job position" {...field} />
+                <Input placeholder="Job position" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>

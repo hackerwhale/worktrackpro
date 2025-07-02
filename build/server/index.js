@@ -43,12 +43,29 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
+import 'dotenv/config';
 import express from "express";
+import session from "express-session";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 var app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+var sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+    throw new Error("SESSION_SECRET environment variable is not set.");
+}
+app.use(session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // true in production (HTTPS)
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // "none" for cross-site cookies
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
+    }
+}));
 app.use(function (req, res, next) {
     var start = Date.now();
     var path = req.path;
@@ -78,7 +95,7 @@ app.use(function (req, res, next) {
     next();
 });
 (function () { return __awaiter(void 0, void 0, void 0, function () {
-    var server, port;
+    var server, port, hostname;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0: return [4 /*yield*/, registerRoutes(app)];
@@ -99,12 +116,9 @@ app.use(function (req, res, next) {
                 serveStatic(app);
                 _a.label = 4;
             case 4:
-                port = 5000;
-                server.listen({
-                    port: port,
-                    host: "0.0.0.0",
-                    reusePort: true,
-                }, function () {
+                port = Number(process.env.PORT) || 3000;
+                hostname = "0.0.0.0";
+                server.listen(port, hostname, function () {
                     log("serving on port ".concat(port));
                 });
                 return [2 /*return*/];

@@ -1,10 +1,30 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
-import { setupVite, serveStatic, log } from "./vite.js";
+import session from "express-session";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use(session({
+  name: 'connect.sid', // Explicitly set cookie name
+  secret: "your-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: false, // true if using HTTPS
+    sameSite: "lax", // or "none" if using HTTPS and cross-origin
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours (optional)
+  }
+}));
+
+app.use(cors({
+  origin: "http://localhost:3000", // or your frontend URL
+  credentials: true,
+}));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -36,6 +56,32 @@ app.use((req, res, next) => {
   next();
 });
 
+
+app.post("/api/auth/login", (req, res) => {
+  // ...validate credentials...
+  // Example:
+  // const user = { id: 1, username: "admin" };
+  // req.session.admin = user;
+
+  // Replace with your actual validation logic:
+  if (req.body.username === "admin" && req.body.password === "admin123")  {
+    req.session.admin = { username: "admin" }; // <-- Set session here
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ message: "Invalid credentials" });
+  }
+});
+
+app.post("/api/auth/logout", (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ success: true });
+  });
+});
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -50,21 +96,14 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
+  const port = 3000;
+  const httpServer = app.listen(port, "0.0.0.0", () => {
+    log(`serving on port ${port}`);
+  });
+
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    await setupVite(app, httpServer);
   } else {
     serveStatic(app);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

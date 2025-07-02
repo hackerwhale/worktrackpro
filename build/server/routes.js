@@ -153,6 +153,12 @@ export function registerRoutes(app) {
                             return [4 /*yield*/, storage.getUserByUsername(username)];
                         case 1:
                             user = _b.sent();
+                            // Allow demo login
+                            if (username === process.env.DEMO_USER &&
+                                password === process.env.DEMO_PASSWORD) {
+                                req.session.userId = 0; // or any demo user id
+                                return [2 /*return*/, res.json({ message: "Login successful" })];
+                            }
                             if (!user || user.password !== password) {
                                 return [2 /*return*/, res.status(401).json({ message: "Invalid credentials" })];
                             }

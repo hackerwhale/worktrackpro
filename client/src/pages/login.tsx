@@ -12,6 +12,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/layout/theme-provider";
 import { Moon, Sun } from "lucide-react";
+import { useLocation } from "wouter";
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -24,6 +25,7 @@ const Login = () => {
   const { toast } = useToast();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [, navigate] = useLocation();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -42,6 +44,7 @@ const Login = () => {
         title: "Login successful",
         description: "Welcome to WorkTrack Pro!",
       });
+      navigate("/dashboard");
     },
     onError: (error) => {
       toast({
